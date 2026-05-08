@@ -6,11 +6,13 @@ const startButton = document.querySelector("#start");
 const scanButton = document.querySelector("#scan");
 const listenButton = document.querySelector("#listen");
 const repeatButton = document.querySelector("#repeat");
+const askDestinationButton = document.querySelector("#askDestination");
 const locateButton = document.querySelector("#locate");
 const setDestinationButton = document.querySelector("#setDestination");
 const autoScan = document.querySelector("#autoScan");
 const questionInput = document.querySelector("#question");
 const destinationInput = document.querySelector("#destination");
+const welcomePrompt = document.querySelector("#welcomePrompt");
 const locationText = document.querySelector("#locationText");
 const routeText = document.querySelector("#routeText");
 const modeButtons = [...document.querySelectorAll(".mode")];
@@ -23,7 +25,9 @@ let locationWatch = null;
 let stream = null;
 let currentPosition = null;
 let destination = null;
+let destinationLabel = "";
 let routeSummary = null;
+let destinationPromptStarted = false;
 
 const directions = [
   "north",
@@ -40,7 +44,7 @@ function setStatus(message) {
   statusText.textContent = message;
 }
 
-function speak(message) {
+function speak(message, onEnd) {
   lastSpoken = message;
   resultText.textContent = message;
   repeatButton.disabled = false;
@@ -49,6 +53,9 @@ function speak(message) {
   const utterance = new SpeechSynthesisUtterance(message);
   utterance.rate = 1.02;
   utterance.pitch = 1;
+  if (onEnd) {
+    utterance.onend = onEnd;
+  }
   window.speechSynthesis.speak(utterance);
 }
 
@@ -123,6 +130,17 @@ function updateRouteSummary(announce = false) {
   locationText.textContent = `GPS active. Accuracy about ${accuracy} meters.`;
 
   if (!destination) {
+    if (destinationLabel) {
+      routeSummary = {
+        destinationLabel,
+        distanceText: "unknown distance",
+        bearingText: "unknown direction",
+        summary: `The user wants to go to ${destinationLabel}, but exact map coordinates are not available yet.`,
+      };
+      routeText.textContent = `Destination: ${destinationLabel}. Address lookup is needed for turn-by-turn routing.`;
+      return;
+    }
+
     routeSummary = null;
     routeText.textContent = "No destination set.";
     return;
@@ -133,11 +151,12 @@ function updateRouteSummary(announce = false) {
   const distanceText = formatDistance(meters);
   const bearingText = bearingName(bearing);
   routeSummary = {
+    destinationLabel,
     distanceText,
     bearingText,
-    summary: `The user is moving toward a destination ${distanceText} away, generally ${bearingText}.`,
+    summary: `The user is moving toward ${destinationLabel || "a destination"} ${distanceText} away, generally ${bearingText}.`,
   };
-  routeText.textContent = `Destination is ${distanceText} ${bearingText}.`;
+  routeText.textContent = `${destinationLabel || "Destination"} is ${distanceText} ${bearingText}.`;
 
   if (announce) {
     speak(`Destination set. It is ${distanceText} ${bearingText}.`);
@@ -181,14 +200,77 @@ function startGps() {
 }
 
 function setDestination() {
-  const coordinates = parseCoordinates(destinationInput.value);
+  const value = destinationInput.value.trim();
+  if (!value) {
+    askForDestination();
+    return;
+  }
+
+  const coordinates = parseCoordinates(value);
   if (!coordinates) {
-    speak("Enter destination as latitude comma longitude. For example, 37.7749 comma minus 122.4194.");
+    destination = null;
+    destinationLabel = value;
+    welcomePrompt.textContent = `Destination set to ${destinationLabel}.`;
+    updateRouteSummary();
+    speak(`I heard ${destinationLabel}. I need a maps address lookup next to create turn by turn directions. For now I can use the camera to describe what is ahead.`);
     return;
   }
 
   destination = coordinates;
+  destinationLabel = value;
+  welcomePrompt.textContent = `Destination set to ${destinationLabel}.`;
   updateRouteSummary(true);
+}
+
+function getSpeechRecognition() {
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition) {
+    speak("Voice input is not supported in this browser. Type the destination instead.");
+    return null;
+  }
+  return new Recognition();
+}
+
+function listenOnce({ status, onResult }) {
+  const recognition = getSpeechRecognition();
+  if (!recognition) return;
+
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  setStatus(status);
+  vibrate([35, 40, 35]);
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript.trim();
+    onResult(transcript);
+  };
+
+  recognition.onerror = () => {
+    speak("I could not hear that. Please try again.");
+  };
+
+  try {
+    recognition.start();
+  } catch (error) {
+    setStatus("Tap anywhere once");
+    speak("The browser needs one tap before it can use the microphone. Tap anywhere on the screen, then say where you want to go.");
+  }
+}
+
+function askForDestination() {
+  destinationPromptStarted = true;
+  welcomePrompt.textContent = "Listening for your destination.";
+  speak("Where would you like to go?", () => {
+    listenOnce({
+      status: "Listening for destination...",
+      onResult: (transcript) => {
+        destinationInput.value = transcript;
+        speak(`You said ${transcript}.`);
+        setDestination();
+      },
+    });
+  });
 }
 
 async function startCamera() {
@@ -285,34 +367,35 @@ function updateAutoScan() {
 }
 
 function startVoiceAsk() {
-  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!Recognition) {
-    speak("Voice ask is not supported in this browser. Type the target in find mode instead.");
-    return;
-  }
-
-  const recognition = new Recognition();
-  recognition.lang = "en-US";
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-  setStatus("Listening...");
-  vibrate([35, 40, 35]);
-
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript.trim();
-    questionInput.value = transcript;
-    setMode("find");
-    speak(`Looking for ${transcript}`);
-    describeNow();
-  };
-
-  recognition.onerror = () => {
-    speak("I could not hear that. Please try again.");
-  };
-
-  recognition.start();
+  listenOnce({
+    status: "Listening...",
+    onResult: (transcript) => {
+      questionInput.value = transcript;
+      setMode("find");
+      speak(`Looking for ${transcript}`);
+      describeNow();
+    },
+  });
 }
 
+window.addEventListener("load", () => {
+  welcomePrompt.textContent = "Where would you like to go?";
+  setTimeout(() => {
+    askForDestination();
+  }, 600);
+});
+
+document.addEventListener(
+  "click",
+  () => {
+    if (!destinationPromptStarted || !destinationInput.value.trim()) {
+      askForDestination();
+    }
+  },
+  { once: true },
+);
+
+askDestinationButton.addEventListener("click", askForDestination);
 startButton.addEventListener("click", startCamera);
 locateButton.addEventListener("click", startGps);
 setDestinationButton.addEventListener("click", setDestination);
