@@ -22,6 +22,12 @@
           <h1 id="app-title">AI Guide</h1>
         </div>
 
+        <article class="prompt-card" aria-label="Trip setup">
+          <p id="welcomePrompt">Where would you like to go?</p>
+          <p class="small-note">The app will try to listen automatically. If the browser blocks it, tap anywhere once.</p>
+          <button id="askDestination" class="primary wide" type="button">Start Listening</button>
+        </article>
+
         <div class="mode-grid" role="group" aria-label="Mode">
           <button class="mode active" type="button" data-mode="navigate">Navigate</button>
           <button class="mode" type="button" data-mode="read">Read</button>
@@ -33,10 +39,10 @@
           <input id="question" type="text" placeholder="Example: door, bus stop, keys" autocomplete="off" />
         </label>
 
-        <div class="destination" aria-label="Destination">
+        <div class="destination" aria-label="Destination entry">
           <label class="find-box" for="destination">
-            <span>Destination coordinates</span>
-            <input id="destination" type="text" placeholder="Example: 37.7749, -122.4194" autocomplete="off" />
+            <span>Destination</span>
+            <input id="destination" type="text" placeholder="Say a place, or enter 37.7749, -122.4194" autocomplete="off" />
           </label>
           <button id="setDestination" type="button">Set Destination</button>
         </div>
