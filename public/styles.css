@@ -132,6 +132,33 @@ input:focus-visible {
   color: var(--text);
 }
 
+.prompt-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem;
+  background: #0f151b;
+  border: 1px solid #2d3743;
+  border-radius: 8px;
+}
+
+.prompt-card p {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.prompt-card .small-note {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.wide {
+  width: 100%;
+}
+
 .destination {
   display: grid;
   gap: 0.55rem;
