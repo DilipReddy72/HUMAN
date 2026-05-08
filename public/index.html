@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Guide</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app" aria-labelledby="app-title">
+      <section class="camera-shell" aria-label="Camera preview">
+        <video id="camera" playsinline autoplay muted></video>
+        <canvas id="frame" hidden></canvas>
+        <div class="status-strip" aria-live="polite">
+          <span id="status">Camera is off</span>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="AI guide controls">
+        <div>
+          <p class="eyebrow">Phone camera + earphones</p>
+          <h1 id="app-title">AI Guide</h1>
+        </div>
+
+        <div class="mode-grid" role="group" aria-label="Mode">
+          <button class="mode active" type="button" data-mode="navigate">Navigate</button>
+          <button class="mode" type="button" data-mode="read">Read</button>
+          <button class="mode" type="button" data-mode="find">Find</button>
+        </div>
+
+        <label class="find-box" for="question">
+          <span>Find mode target</span>
+          <input id="question" type="text" placeholder="Example: door, bus stop, keys" autocomplete="off" />
+        </label>
+
+        <div class="destination" aria-label="Destination">
+          <label class="find-box" for="destination">
+            <span>Destination coordinates</span>
+            <input id="destination" type="text" placeholder="Example: 37.7749, -122.4194" autocomplete="off" />
+          </label>
+          <button id="setDestination" type="button">Set Destination</button>
+        </div>
+
+        <article class="nav-card" aria-label="Live location">
+          <p id="locationText">Location tracking is off.</p>
+          <p id="routeText">No destination set.</p>
+        </article>
+
+        <div class="action-grid">
+          <button id="start" class="primary" type="button">Start Camera</button>
+          <button id="locate" class="primary" type="button">Start GPS</button>
+          <button id="scan" class="primary" type="button" disabled>Describe Now</button>
+          <button id="listen" type="button">Voice Ask</button>
+          <button id="repeat" type="button" disabled>Repeat</button>
+        </div>
+
+        <label class="auto-row">
+          <input id="autoScan" type="checkbox" />
+          <span>Auto describe every 8 seconds</span>
+        </label>
+
+        <article class="result" aria-label="Latest spoken result">
+          <p id="resultText">Start the camera, then ask what is ahead.</p>
+        </article>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
